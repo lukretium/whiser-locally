@@ -1,0 +1,11 @@
+[project]
+name = "whisper-dictation"
+version = "1.0.0"
+description = "Whisper dictation tool for macOS"
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.21.0",
+    "sounddevice>=0.4.6",
+    "pyperclip>=1.8.2",
+    "pynput>=1.7.6",
+]
