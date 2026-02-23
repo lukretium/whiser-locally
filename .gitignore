@@ -40,3 +40,6 @@ models/
 
 # Logs
 *.log
+
+# User specific files
+config.json

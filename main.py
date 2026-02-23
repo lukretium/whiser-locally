@@ -6,14 +6,46 @@ import os
 import wave
 import time
 import argparse
+import json
 from pynput import keyboard
+
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+CONFIG_DEFAULTS = {"model": "base", "key": "ctrl_r"}
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE) as f:
+            return {**CONFIG_DEFAULTS, **json.load(f)}
+    return CONFIG_DEFAULTS.copy()
+
+def save_config(data):
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+config = load_config()
 
 # --- ARGUMENT PARSER ---
 parser = argparse.ArgumentParser(description="M1 Whisper Dictation")
-parser.add_argument("--model", type=str, default="base", 
-                    choices=["base", "small", "large-v3-turbo"], 
+parser.add_argument("--model", type=str,
+                    choices=["base", "small", "large-v3-turbo"],
                     help="Choose model: base, small, or large-v3-turbo")
+parser.add_argument("--key", type=str,
+                    help="Key to hold for recording (pynput key name, e.g. ctrl_r, ctrl_l, f13, cmd_r)")
+parser.set_defaults(**config)
 args = parser.parse_args()
+
+# Save effective config for next run
+save_config({"model": args.model, "key": args.key})
+
+def parse_key(key_str):
+    try:
+        return keyboard.Key[key_str]
+    except KeyError:
+        if len(key_str) == 1:
+            return keyboard.KeyCode.from_char(key_str)
+        raise ValueError(f"Unknown key '{key_str}'. Use a pynput key name like ctrl_l, ctrl_r, f13, cmd_r, or a single character.")
+
+TRIGGER_KEY = parse_key(args.key)
 
 # --- CONFIG ---
 MODEL_PATH = os.path.expanduser(f"~/models/ggml-{args.model}.bin")
@@ -33,7 +65,7 @@ if not WHISPER_BIN:
 
 print(f"🚀 Using Model: {args.model.upper()}")
 print(f"🛠️  Using Binary: {WHISPER_BIN}")
-print("✅ Ready! Hold Right-Ctrl to speak.")
+print(f"✅ Ready! Hold '{args.key}' to speak.")
 
 recording = []
 is_recording = False
@@ -95,12 +127,12 @@ def process_audio():
 
 def on_press(key):
     global is_recording
-    if key == keyboard.Key.ctrl_r and not is_recording:
+    if key == TRIGGER_KEY and not is_recording:
         is_recording = True
         play_sound("Tink")
 
 def on_release(key):
-    if key == keyboard.Key.ctrl_r:
+    if key == TRIGGER_KEY:
         process_audio()
 
 with sd.InputStream(samplerate=FS, channels=1, callback=lambda indata, frames, time, status: recording.append(indata.copy()) if is_recording else None):
