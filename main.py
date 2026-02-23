@@ -54,6 +54,11 @@ TEMP_FILE = "/tmp/voice_prompt.wav"
 
 # FIND THE BINARY AUTOMATICALLY
 WHISPER_BIN = subprocess.run(["which", "whisper-cli"], capture_output=True, text=True).stdout.strip()
+if not WHISPER_BIN:
+    for candidate in ["/opt/homebrew/bin/whisper-cli", "/usr/local/bin/whisper-cli"]:
+        if os.path.isfile(candidate):
+            WHISPER_BIN = candidate
+            break
 
 def play_sound(name="Tink"):
     os.system(f"afplay /System/Library/Sounds/{name}.aiff &")
